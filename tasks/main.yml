@@ -1,0 +1,26 @@
+- name: elasticsearch - download
+  get_url:
+    url={{ elasticsearch.deb }}
+    sha256sum={{ elasticsearch.deb_sha256 }}
+    dest=/tmp/elasticsearch.deb
+
+- name: elasticsearch - install
+  sudo: true
+  command: /usr/bin/dpkg -i /tmp/elasticsearch.deb
+    creates=/usr/share/elasticsearch
+  register: result
+  notify: restart elasticsearch
+
+- name: elasticsearch - generate config
+  sudo: true
+  template:
+    src=elasticsearch.yml.j2
+    dest=/etc/elasticsearch/elasticsearch.yml
+    mode=0644
+  notify: restart elasticsearch
+
+# unless we do this, we somehow end up with two instances elasticsearch
+# running... I love Java!
+- name: elasticsearch - sleep after install
+  pause: seconds=5
+  when: result.changed
